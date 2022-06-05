@@ -62,6 +62,8 @@
 ;;
 ;;; Code:
 
+(require 'eieio)
+
 (defvar pyconf-config-list '())
 
 (defun pyconf-run-python-proc (command-s path-to-file exec-dir &optional params venv env-vars)
