@@ -64,15 +64,17 @@
 
 (require 'eieio)
 (require 'subr-x)
+(require 'pyvenv)
 
 (defvar pyconf-config-list '())
 
 (defun pyconf-run-python-proc (command-s path-to-file exec-dir &optional params venv env-vars)
-  "Execute asynchronously COMMAND-S pointing to PATH-TO-FILE, setting the `default-directory' to EXEC-DIR if provided and pass the PARAMS given.  Load with `pyvenv' the VENV virtualenv if provided and set the ENV-VARS if provided."
+  "Execute COMMAND-S pointing to PATH-TO-FILE, setting the `default-directory' to EXEC-DIR if provided and pass the PARAMS given.  Load with `pyvenv' the VENV virtualenv if provided and set the ENV-VARS if provided."
   (let ((venv (or venv ""))
 	(params (or params ""))
 	(env-vars (or env-vars ""))
-	(cached-venv nil))
+	(cached-venv nil)
+	(built-env-vars ""))
     (if venv
 	(progn
 	  (if pyvenv-virtual-env
@@ -80,8 +82,7 @@
 	  (pyvenv-deactivate)
 	  (pyvenv-activate venv)))
     (if (> (length env-vars) 0)
-	(setq built-env-vars (string-join env-vars " "))
-      (setq built-env-vars ""))
+	(setq built-env-vars (string-join env-vars " ")))
     (let ((default-directory exec-dir))
       (async-shell-command (string-join
 			    (list built-env-vars command-s path-to-file params) " ") (format "*PyConf %s*" path-to-file)))
