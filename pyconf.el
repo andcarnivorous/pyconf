@@ -122,7 +122,7 @@
 			  (slot-value pyconf-config-obj 'pyconf-file-to-exec)
 			  (slot-value pyconf-config-obj 'pyconf-path-to-exec)
 			  (slot-value pyconf-config-obj 'pyconf-params)
-			  (slot-valuep yconf-config-obj 'pyconf-venv)
+			  (slot-value pyconf-config-obj 'pyconf-venv)
 			  (slot-value pyconf-config-obj 'pyconf-env-vars)))
 
 (defun pyconf-start (choice)
