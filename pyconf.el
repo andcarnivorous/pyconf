@@ -1,10 +1,10 @@
-;;; pyconf.el --- A package for basic linguistic analysis.
+;;; pyconf.el --- Set up python execution configurations like dap-mode ones
 ;;
 ;; Copyright (C) 2022 Andrew Favia
 ;; Author: Andrew Favia <drewlinguistics01 at gmail dot com>
 ;; Version: 0.1
-;; Package-Requires ((pyvenv "20211014.707") (emacs "27"))
-;; Keywords: python, pyvenv
+;; Package-Requires ((pyvenv "20211014.707") (emacs "27.1"))
+;; Keywords: processes, python
 ;; URL: https://github.com/andcarnivorous/pyconf
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -30,10 +30,10 @@
 ;;
 ;; Usage:
 ;;
-;; You can use the `pyconf-add-config' function passing a `python-config' object
+;; You can use the `pyconf-add-config' function passing a `pyconf-config' object
 ;; You can then call `pyconf-start' to execute one of your configurations
 ;; Example:
-;; (pyconf-add-config (python-config :name "test1"
+;; (pyconf-add-config (pyconf-config :name "test1"
 ;; 				  :pyconf-exec-command "python3"
 ;; 				  :pyconf-file-to-exec "~/test/test.py"
 ;; 				  :pyconf-path-to-exec "~/test/"
@@ -43,14 +43,14 @@
 ;;
 ;; Add multiple configurations:
 ;; (pyconf-add-configurations `(
-;; 			     ,(python-config :name "test3"
+;; 			     ,(pyconf-config :name "test3"
 ;; 							       :pyconf-exec-command "python3 -i"
 ;; 							       :pyconf-file-to-exec "~/test/test.py"
 ;; 							       :pyconf-path-to-exec "~/test/"
 ;; 							       :pyconf-params ""
 ;; 							       :pyconf-venv "~/test/.venv/"
 ;; 							       :pyconf-env-vars '("TEST5=5"))
-;; 			     ,(python-config :name "test2"
+;; 			     ,(pyconf-config :name "test2"
 ;; 							       :pyconf-exec-command "python3 -i"
 ;; 							       :pyconf-file-to-exec "~/test/test.py"
 ;; 							       :pyconf-path-to-exec "~/test/"
@@ -62,11 +62,10 @@
 ;;
 ;;; Code:
 
-(require 'pyvenv)
-
-(setq pyconf-config-list '())
+(defvar pyconf-config-list '())
 
 (defun pyconf-run-python-proc (command-s path-to-file exec-dir &optional params venv env-vars)
+  "Execute asynchronously COMMAND-S pointing to PATH-TO-FILE, setting the `default-directory' to EXEC-DIR if provided and pass the PARAMS given.  Load with `pyvenv' the VENV virtualenv if provided and set the ENV-VARS if provided."
   (let ((venv (or venv ""))
 	(params (or params ""))
 	(env-vars (or env-vars ""))
@@ -89,7 +88,7 @@
 	  (pyvenv-activate cached-venv))
       (pyvenv-deactivate))))
 
-(defclass python-config ()
+(defclass pyconf-config ()
   ((name :initarg :name
 	 :type string
 	 :custom string)
@@ -116,15 +115,16 @@
 		    :initform '())))
 
 (defun pyconf-execute-config (pyconf-config-obj)
+  "Pass to the PYCONF-RUN-PYTHON-PROC all the values from PYCONF-CONFIG-OBJ."
   (pyconf-run-python-proc (slot-value pyconf-config-obj 'pyconf-exec-command)
 			  (slot-value pyconf-config-obj 'pyconf-file-to-exec)
 			  (slot-value pyconf-config-obj 'pyconf-path-to-exec)
 			  (slot-value pyconf-config-obj 'pyconf-params)
-			  (slot-value pyconf-config-obj 'pyconf-venv)
+			  (slot-valuep yconf-config-obj 'pyconf-venv)
 			  (slot-value pyconf-config-obj 'pyconf-env-vars)))
 
 (defun pyconf-start (choice)
-  "Prompts to choose one of the available configurations and then executes it"
+  "Prompt to choose one CHOICE configuration and then execute it."
   (interactive
    (let ((completion-ignore-case  t))
      (list (completing-read "Choose Config: " pyconf-config-list nil t))))
@@ -132,31 +132,14 @@
   choice)
 
 (defun pyconf-add-config (config-listp)
-  "Adds a pyconf-config object to the configurations list"
+  "Add CONFIG-LISTP configuration to PYCONF-CONFIG-LIST."
   (let ((config-name (slot-value config-listp 'name)))
     (add-to-list 'pyconf-config-list `(,(slot-value config-listp 'name) . ,config-listp))))
 
 (defun pyconf-add-configurations (configurations-list)
+  "Add a list of configurations from CONFIGURATIONS-LIST to the PYCONF-CONFIG-LIST."
   (dolist (configuration-item configurations-list)
     (pyconf-add-config configuration-item)))
-
-;; These are a couple of example configurations
-;; (pyconf-add-config (python-config :name "test1"
-;; 				  :pyconf-exec-command "python3"
-;; 				  :pyconf-file-to-exec "~/test/test.py"
-;; 				  :pyconf-path-to-exec "~/test/"
-;; 				  :pyconf-params "--verbose"
-;; 				  :pyconf-venv "~/test/.venv/"
-;; 				  :pyconf-env-vars '("TEST5=5")))
-
-
-;; (pyconf-add-config (python-config :name "test1"
-;; 				  :pyconf-exec-command "python3 -i"
-;; 				  :pyconf-file-to-exec "~/test/test.py"
-;; 				  :pyconf-path-to-exec "~/test/"
-;; 				  :pyconf-params ""
-;; 				  :pyconf-venv "~/test/.venv/"
-;; 				  :pyconf-env-vars '("TEST5=5")))
 
 (provide 'pyconf)
 
