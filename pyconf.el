@@ -63,6 +63,7 @@
 ;;; Code:
 
 (require 'eieio)
+(require 'subr-x)
 
 (defvar pyconf-config-list '())
 
