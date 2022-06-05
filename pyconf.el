@@ -31,6 +31,7 @@
 ;; Usage:
 ;;
 ;; You can use the `pyconf-add-config' function passing a `python-config' object
+;; You can then call `pyconf-start' to execute one of your configurations
 ;; Example:
 ;; (pyconf-add-config (python-config :name "test1"
 ;; 				  :pyconf-exec-command "python3"
@@ -161,3 +162,5 @@
 ;; 				  :pyconf-env-vars '("TEST5=5")))
 
 (provide 'pyconf)
+
+;;; pyconf.el ends here
