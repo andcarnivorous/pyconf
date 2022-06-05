@@ -77,15 +77,12 @@
 	      (setq cached-venv pyvenv-virtual-env))
 	  (pyvenv-deactivate)
 	  (pyvenv-activate venv)))
-    (if (> (length params) 0)
-	(setq built-params params)
-      (setq built-params ""))
     (if (> (length env-vars) 0)
 	(setq built-env-vars (string-join env-vars " "))
       (setq built-env-vars ""))
     (let ((default-directory exec-dir))
       (async-shell-command (string-join
-			    (list built-env-vars command-s path-to-file built-params) " ") (format "*PyConf %s*" path-to-file)))
+			    (list built-env-vars command-s path-to-file params) " ") (format "*PyConf %s*" path-to-file)))
     (if cached-venv
 	(progn
 	  (pyvenv-deactivate)
