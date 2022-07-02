@@ -3,7 +3,7 @@
 ;; Copyright (C) 2022 Andrew Favia
 ;; Author: Andrew Favia <drewlinguistics01 at gmail dot com>
 ;; Version: 0.1
-;; Package-Requires: ((pyvenv "20211014.707") (emacs "27.1"))
+;; Package-Requires: ((pyvenv "1.21") (emacs "27.1"))
 ;; Keywords: processes, python
 ;; URL: https://github.com/andcarnivorous/pyconf
 ;;
