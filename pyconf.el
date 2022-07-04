@@ -67,7 +67,10 @@
 (defvar pyconf-config-list '())
 
 (defun pyconf-run-python-proc (command-s path-to-file exec-dir &optional params venv env-vars)
-  "Execute COMMAND-S pointing to PATH-TO-FILE, setting the `default-directory' to EXEC-DIR if provided and pass the PARAMS given.  Load with `pyvenv' the VENV virtualenv if provided and set the ENV-VARS if provided."
+  "Execute COMMAND-S pointing to PATH-TO-FILE.
+Set the `default-directory' to EXEC-DIR if provided and pass the
+PARAMS given.  Load with `pyvenv' the VENV virtualenv if provided
+and set the ENV-VARS if provided."
   (let ((venv (or venv ""))
 	(params (or params ""))
 	(env-vars (or env-vars ""))
