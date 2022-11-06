@@ -34,28 +34,28 @@
 ;; You can then call `pyconf-start' to execute one of your configurations
 ;; Example:
 ;; (pyconf-add-config (pyconf-config :name "test1"
-;; 				     :pyconf-exec-command "python3"
-;; 				     :pyconf-file-to-exec "~/test/test.py"
-;; 				     :pyconf-path-to-exec "~/test/"
-;; 				     :pyconf-params "--verbose"
-;; 				     :pyconf-venv "~/test/.venv/"
-;; 				     :pyconf-env-vars '("TEST5=5")))
+;;                                   :pyconf-exec-command "python3"
+;;                                   :pyconf-file-to-exec "~/test/test.py"
+;;                                   :pyconf-path-to-exec "~/test/"
+;;                                   :pyconf-params "--verbose"
+;;                                   :pyconf-venv "~/test/.venv/"
+;;                                   :pyconf-env-vars '("TEST5=5")))
 ;;
 ;; Add multiple configurations:
 ;; (pyconf-add-configurations `(,(pyconf-config :name "test3"
-;;     					        :pyconf-exec-command "python3 -i"
-;; 					        :pyconf-file-to-exec "~/test/test.py"
-;; 					        :pyconf-path-to-exec "~/test/"
-;; 					        :pyconf-params ""
-;; 					        :pyconf-venv "~/test/.venv/"
-;; 					        :pyconf-env-vars '("TEST5=5"))
-;; 			        ,(pyconf-config :name "test2"
-;; 					        :pyconf-exec-command "python3 -i"
-;; 					        :pyconf-file-to-exec "~/test/test.py"
-;; 					        :pyconf-path-to-exec "~/test/"
-;; 					        :pyconf-params ""
-;; 					        :pyconf-venv "~/test/.venv/"
-;; 					        :pyconf-env-vars '("TEST5=5"))))
+;;                                              :pyconf-exec-command "python3 -i"
+;;                                              :pyconf-file-to-exec "~/test/test.py"
+;;                                              :pyconf-path-to-exec "~/test/"
+;;                                              :pyconf-params ""
+;;                                              :pyconf-venv "~/test/.venv/"
+;;                                              :pyconf-env-vars '("TEST5=5"))
+;;                              ,(pyconf-config :name "test2"
+;;                                              :pyconf-exec-command "python3 -i"
+;;                                              :pyconf-file-to-exec "~/test/test.py"
+;;                                              :pyconf-path-to-exec "~/test/"
+;;                                              :pyconf-params ""
+;;                                              :pyconf-venv "~/test/.venv/"
+;;                                              :pyconf-env-vars '("TEST5=5"))))
 ;;
 ;;; Code:
 
