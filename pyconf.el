@@ -56,7 +56,6 @@
 ;; 					        :pyconf-params ""
 ;; 					        :pyconf-venv "~/test/.venv/"
 ;; 					        :pyconf-env-vars '("TEST5=5"))))
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
 ;;
 ;;; Code:
 
@@ -72,61 +71,61 @@ Set the `default-directory' to EXEC-DIR if provided and pass the
 PARAMS given.  Load with `pyvenv' the VENV virtualenv if provided
 and set the ENV-VARS if provided."
   (let ((venv (or venv ""))
-	(params (or params ""))
-	(env-vars (or env-vars ""))
-	(cached-venv nil)
-	(built-env-vars ""))
+        (params (or params ""))
+        (env-vars (or env-vars ""))
+        (cached-venv nil)
+        (built-env-vars ""))
     (if venv
-	(progn
-	  (if pyvenv-virtual-env
-	      (setq cached-venv pyvenv-virtual-env))
-	  (pyvenv-deactivate)
-	  (pyvenv-activate venv)))
+        (progn
+          (if pyvenv-virtual-env
+              (setq cached-venv pyvenv-virtual-env))
+          (pyvenv-deactivate)
+          (pyvenv-activate venv)))
     (if (> (length env-vars) 0)
-	(setq built-env-vars (string-join env-vars " ")))
+        (setq built-env-vars (string-join env-vars " ")))
     (let ((default-directory exec-dir))
       (async-shell-command (string-join
-			    (list built-env-vars command-s path-to-file params) " ") (format "*PyConf %s*" path-to-file)))
+                            (list built-env-vars command-s path-to-file params) " ") (format "*PyConf %s*" path-to-file)))
     (if cached-venv
-	(progn
-	  (pyvenv-deactivate)
-	  (pyvenv-activate cached-venv))
+        (progn
+          (pyvenv-deactivate)
+          (pyvenv-activate cached-venv))
       (pyvenv-deactivate))))
 
 (defclass pyconf-config ()
   ((name :initarg :name
-	 :type string
-	 :custom string)
+         :type string
+         :custom string)
    (pyconf-exec-command :initarg :pyconf-exec-command
-			:type string
-			:custom string)
+                        :type string
+                        :custom string)
    (pyconf-file-to-exec :initarg :pyconf-file-to-exec
-			:type string
-			:custom string)
+                        :type string
+                        :custom string)
    (pyconf-path-to-exec :initarg :pyconf-path-to-exec
-			:type string
-			:custom string
-			:initform ".")
+                        :type string
+                        :custom string
+                        :initform ".")
    (pyconf-params :initarg :pyconf-params
-		  :type string
-		  :custom string)
+                  :type string
+                  :custom string)
    (pyconf-venv :initarg :pyconf-venv
-		:type string
-		:custom string
-		:initform "")
+                :type string
+                :custom string
+                :initform "")
    (pyconf-env-vars :initarg :pyconf-env-vars
-		    :type list
-		    :custom list
-		    :initform '())))
+                    :type list
+                    :custom list
+                    :initform '())))
 
 (defun pyconf-execute-config (pyconf-config-obj)
   "Pass to the PYCONF-RUN-PYTHON-PROC all the values from PYCONF-CONFIG-OBJ."
   (pyconf-run-python-proc (slot-value pyconf-config-obj 'pyconf-exec-command)
-			  (slot-value pyconf-config-obj 'pyconf-file-to-exec)
-			  (slot-value pyconf-config-obj 'pyconf-path-to-exec)
-			  (slot-value pyconf-config-obj 'pyconf-params)
-			  (slot-value pyconf-config-obj 'pyconf-venv)
-			  (slot-value pyconf-config-obj 'pyconf-env-vars)))
+                          (slot-value pyconf-config-obj 'pyconf-file-to-exec)
+                          (slot-value pyconf-config-obj 'pyconf-path-to-exec)
+                          (slot-value pyconf-config-obj 'pyconf-params)
+                          (slot-value pyconf-config-obj 'pyconf-venv)
+                          (slot-value pyconf-config-obj 'pyconf-env-vars)))
 
 (defun pyconf-start (choice)
   "Prompt to choose one CHOICE configuration and then execute it."
