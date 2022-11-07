@@ -181,9 +181,16 @@ and set the ENV-VARS if provided."
                                            :pyconf-params config-params
                                            :pyconf-venv config-venv))))
 
+(defun pyconf-prefix-init (obj)
+  "This function is needed to load dynamically default values.
+Refer to
+https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-current-buffer"
+  (oset obj value `(,(format "--name=%s" (buffer-name)) "--command=python" ,(format "--file-path=%s" (buffer-file-name)) ,(format "--path=%s" (file-name-directory buffer-file-name)))))
+
+
 (transient-define-prefix pyconf ()
   "PyConf"
-  :value `(,(format "--name=%s" (buffer-name)) "--command=python" ,(format "--file-path=%s" (buffer-file-name)) ,(format "--path=%s" (file-name-directory buffer-file-name)))
+  :init-value 'pyconf-prefix-init
   ["Arguments"
    ("-n" "name" "--name=" :always-read t)
    ("-c" "command" "--command=" :always-read t)
