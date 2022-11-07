@@ -144,6 +144,59 @@ and set the ENV-VARS if provided."
   (dolist (configuration-item configurations-list)
     (pyconf-add-config configuration-item)))
 
+(transient-define-suffix transient-pyconf-save (&optional args)
+  "Save a pyconf configuration given the necessary parameters"
+  :key "s"
+  :description "save"
+  :transient nil
+  (interactive (list (transient-args transient-current-command)))
+  (let ((config-name (transient-arg-value "--name=" args))
+        (config-command (transient-arg-value "--command=" args))
+        (config-file-path (transient-arg-value "--file-path=" args))
+        (config-exec-path (transient-arg-value "--path=" args))
+        (config-params (transient-arg-value "--params=" args))
+        (config-venv (transient-arg-value "--venv=" args)))
+    (pyconf-add-configurations `(,(pyconf-config :name config-name
+                                                 :pyconf-exec-command config-command
+                                                 :pyconf-file-to-exec config-file-path
+                                                 :pyconf-path-to-exec config-exec-path
+                                                 :pyconf-params config-params
+                                                 :pyconf-venv config-venv)))))
+
+(transient-define-suffix transient-pyconf-execute (&optional args)
+  "Execute a non-persistent pyconf configuration given the necessary parameters."
+  :key "x"
+  :description "execute"
+  :transient nil
+  (interactive (list (transient-args transient-current-command)))
+  (let ((config-name (or (transient-arg-value "--name=" args) (buffer-name)))
+        (config-command (or (transient-arg-value "--command=" args) "python"))
+        (config-file-path (or (transient-arg-value "--file-path=" args) (buffer-file-name)))
+        (config-exec-path (or (transient-arg-value "--path=" args) (file-name-directory buffer-file-name)))
+        (config-params (or (transient-arg-value "--params=" args) ""))
+        (config-venv (or (transient-arg-value "--venv=" args) "")))
+    (pyconf-execute-config (pyconf-config :name config-name
+                                           :pyconf-exec-command config-command
+                                           :pyconf-file-to-exec config-file-path
+                                           :pyconf-path-to-exec config-exec-path
+                                           :pyconf-params config-params
+                                           :pyconf-venv config-venv))))
+
+(transient-define-prefix pyconf ()
+  "PyConf"
+  :value `(,(format "--name=%s" (buffer-name)) "--command=python" ,(format "--file-path=%s" (buffer-file-name)) ,(format "--path=%s" (file-name-directory buffer-file-name)))
+  ["Arguments"
+   ("-n" "name" "--name=" :always-read t)
+   ("-c" "command" "--command=" :always-read t)
+   ("-f" "file path" "--file-path=" :always-read t)
+   ("-p" "execution path" "--path=" :always-read t)
+   ("-v" "virtualenv" "--venv=" :always-read t)
+   ("--params" "parameters" "--params=" :always-read t)
+   ]
+  ["Actions"
+   [(transient-pyconf-save)
+    (transient-pyconf-execute)]])
+
 (provide 'pyconf)
 
 ;;; pyconf.el ends here
