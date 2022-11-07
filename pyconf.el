@@ -70,27 +70,25 @@
 Set the `default-directory' to EXEC-DIR if provided and pass the
 PARAMS given.  Load with `pyvenv' the VENV virtualenv if provided
 and set the ENV-VARS if provided."
-  (let ((venv (or venv ""))
-        (params (or params ""))
-        (env-vars (or env-vars ""))
+  (let ((venv (or venv nil))
+        (params (or params nil))
+        (env-vars (or env-vars nil))
         (cached-venv nil)
-        (built-env-vars ""))
-    (if venv
-        (progn
-          (if pyvenv-virtual-env
-              (setq cached-venv pyvenv-virtual-env))
-          (pyvenv-deactivate)
-          (pyvenv-activate venv)))
+        (built-env-vars nil))
+    (when venv
+      (if pyvenv-virtual-env
+          (setq cached-venv pyvenv-virtual-env))
+      (pyvenv-deactivate)
+      (pyvenv-activate venv))
     (if (> (length env-vars) 0)
         (setq built-env-vars (string-join env-vars " ")))
     (let ((default-directory exec-dir))
-      (async-shell-command (string-join
-                            (list built-env-vars command-s path-to-file params) " ") (format "*PyConf %s*" path-to-file)))
-    (if cached-venv
-        (progn
-          (pyvenv-deactivate)
-          (pyvenv-activate cached-venv))
-      (pyvenv-deactivate))))
+      (async-shell-command
+       (string-join (list built-env-vars command-s path-to-file params) " ") (format "*PyConf %s*" path-to-file)))
+    (when cached-venv
+      (pyvenv-deactivate)
+      (pyvenv-activate cached-venv))
+    (pyvenv-deactivate)))
 
 (defclass pyconf-config ()
   ((name :initarg :name
