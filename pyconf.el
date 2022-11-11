@@ -2,8 +2,8 @@
 ;;
 ;; Copyright (C) 2022 Andrew Favia
 ;; Author: Andrew Favia <drewlinguistics01 at gmail dot com>
-;; Version: 0.1
-;; Package-Requires: ((pyvenv "1.21") (emacs "28.1"))
+;; Version: 0.1.0
+;; Package-Requires: ((pyvenv "1.21") (emacs "28.1") (transient "0.3.7"))
 ;; Keywords: processes, python
 ;; URL: https://github.com/andcarnivorous/pyconf
 ;;
@@ -62,6 +62,7 @@
 (require 'eieio)
 (require 'subr-x)
 (require 'pyvenv)
+(require 'transient)
 
 (defvar pyconf-config-list '())
 
@@ -185,10 +186,13 @@ and set the ENV-VARS if provided."
   "Load dynamically default values and set OBJ value slot.
 Refer to
 https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-current-buffer"
-  (oset obj value `(,(format "--name=%s" (buffer-name)) "--command=python" ,(format "--file-path=%s" (buffer-file-name)) ,(format "--path=%s" (file-name-directory buffer-file-name)))))
+  (oset obj value `(,(format "--name=%s" (buffer-name))
+                    "--command=python"
+                    ,(format "--file-path=%s" (buffer-file-name))
+                    ,(format "--path=%s" (file-name-directory buffer-file-name)))))
 
 (transient-define-prefix pyconf ()
-  "PyConf."
+  "PyConf transient interface."
   :init-value 'pyconf-prefix-init
   ["Arguments"
    ("-n" "name" "--name=" :always-read t)
@@ -199,8 +203,8 @@ https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-curre
    ("--params" "parameters" "--params=" :always-read t)
    ]
   ["Actions"
-   [(transient-pyconf-save)
-    (transient-pyconf-execute)]])
+   [(pyconf-transient-save)
+    (pyconf-transient-execute)]])
 
 (provide 'pyconf)
 
