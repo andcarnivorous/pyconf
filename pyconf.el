@@ -79,17 +79,20 @@ and set the ENV-VARS if provided."
     (when venv
       (if pyvenv-virtual-env
           (setq cached-venv pyvenv-virtual-env))
-      (pyvenv-deactivate)
-      (pyvenv-activate venv))
+      (pyconf-activate-venv venv))
     (if (> (length env-vars) 0)
         (setq built-env-vars (string-join env-vars " ")))
     (let ((default-directory exec-dir))
       (async-shell-command
        (string-join (list built-env-vars command-s path-to-file params) " ") (format "*PyConf %s*" path-to-file)))
     (when cached-venv
-      (pyvenv-deactivate)
-      (pyvenv-activate cached-venv))
+      (pyconf-activate-venv cached-venv))
     (pyvenv-deactivate)))
+
+(defun pyconf-activate-venv (venv)
+  "Activate given VENV after deactivating any eventual active one."
+  (pyvenv-deactivate)
+  (pyvenv-activate venv))
 
 (defclass pyconf-config ()
   ((name :initarg :name
@@ -191,7 +194,7 @@ https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-curre
                     ,(format "--file-path=%s" (buffer-file-name))
                     ,(format "--path=%s" (file-name-directory buffer-file-name)))))
 
-(transient-define-prefix pyconf ()
+(transient-define-prefix pyconf-menu ()
   "PyConf transient interface."
   :init-value 'pyconf-prefix-init
   ["Arguments"
