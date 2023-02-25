@@ -175,6 +175,10 @@ finally, set the ENV-VARS if provided."
   (dolist (configuration-item configurations-list)
     (pyconf-add-config configuration-item)))
 
+(defun pyconf--eval-env-vars (vars-list)
+  "Evaluate elisp code stored in a string."
+  (eval (car (read-from-string vars-list))))
+
 (transient-define-suffix pyconf-transient-save (&optional args)
   "Save a pyconf configuration given the necessary parameters."
   :key "s"
@@ -188,7 +192,7 @@ finally, set the ENV-VARS if provided."
         (config-params (or (transient-arg-value "--params=" args) ""))
         (config-venv (or (transient-arg-value "--venv=" args) ""))
         (config-pyenv (or (transient-arg-value "--pyenv=" args) ""))
-        (config-env-vars (or (transient-arg-value "--env-vars=" args) "")))
+        (config-env-vars (or (pyconf--eval-env-vars (transient-arg-value "--env-vars=" args)) '())))
     (pyconf-add-configurations (list (pyconf-config :name config-name
                                                  :pyconf-exec-command config-command
                                                  :pyconf-file-to-exec config-file-path
@@ -211,7 +215,7 @@ finally, set the ENV-VARS if provided."
         (config-params (or (transient-arg-value "--params=" args) ""))
         (config-venv (or (transient-arg-value "--venv=" args) ""))
         (config-pyenv (or (transient-arg-value "--pyenv=" args) ""))
-        (config-env-vars (or (transient-arg-value "--env-vars=" args) "")))
+        (config-env-vars (or (pyconf--eval-env-vars (transient-arg-value "--env-vars=" args) ""))))
     (pyconf-execute-config (pyconf-config :name config-name
                                            :pyconf-exec-command config-command
                                            :pyconf-file-to-exec config-file-path
