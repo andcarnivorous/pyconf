@@ -2,7 +2,7 @@
 ;;
 ;; Copyright (C) 2022 Andrew Favia
 ;; Author: Andrew Favia <drewlinguistics01 at gmail dot com>
-;; Version: 0.1.1
+;; Version: 0.2.0
 ;; Package-Requires: ((pyvenv "1.21") (emacs "28.1") (transient "0.3.7") (pyenv-mode "0.1.0"))
 ;; Keywords: processes, python
 ;; URL: https://github.com/andcarnivorous/pyconf
@@ -262,6 +262,47 @@ https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-curre
 (defun pyconf--split-vars-string (vars-string)
   "Split a VARS-STRING containing environment variables comma separated into a list."
   (split-string vars-string ","))
+
+(defun pyconf-bootstrap-pyproject (target-dir pyenv-version use-poetry)
+  "Creates a new venv with given PYENV-VERSION in TARGET-DIR.
+If USE-POETRY, it will install all dependencies in the TARGET-DIR.
+It will also create a dir-locals that switches pyenv in python mode."
+  (interactive (let ((completion-ignore-case t))
+		 (list (read-directory-name "DDir: ")
+		       (completing-read "Choose Config: " (pyvenv-virtualenv-list) nil t)
+		       (yes-or-no-p "Use Poetry?"))))
+  (let* ((package-dir (file-truename target-dir))
+	 (venv-name (file-name-base (directory-file-name (file-truename package-dir))))
+	 (out-file (expand-file-name ".dir-locals.el" package-dir))
+	 (out-contents (format "((nil . ((eval . (pyconf--switch-pyvenv \"%s\")))))" venv-name))
+	 (use-short-answers t))
+    (pyconf-create-pyenv venv-name pyenv-version)
+    (when use-poetry (pyconf-install-with-poetry package-dir))
+    (with-temp-file out-file (insert out-contents))))
+
+(defun pyconf-create-pyenv (name version)
+  "Creates a new pyenv virtualenv with given NAME using given pyenv VERSION"
+  (if (not (member name (pyvenv-virtualenv-list)))
+      (pyconf--exec-pyenv-create version name))
+  (pyvenv-workon name))
+
+(defun pyconf--exec-pyenv-create (version name)
+  (call-process-shell-command
+       (string-join (list "pyenv virtualenv" version name) " ") nil 0))
+
+(defvar pyconf-bootstrap-packages nil
+  "List of packages you want to install when boostrapping a project. Nil by default")
+
+(defun pyconf-install-with-poetry (target-dir)
+  "Install python dependencies in TARGET-DIR using poetry"
+  (let ((default-directory target-dir))
+    (async-shell-command "poetry install")
+    (if pyconf-bootstrap-packages
+        (async-shell-command (format "poetry add %s" (string-join pyconf-bootstrap-packages " ")))))) 
+
+(defun pyconf--switch-pyvenv (environment)
+  (pyvenv-deactivate)
+  (pyvenv-workon environment))
 
 (provide 'pyconf)
 
