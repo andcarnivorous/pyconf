@@ -2,7 +2,7 @@
 ;;
 ;; Copyright (C) 2022 Andrew Favia
 ;; Author: Andrew Favia <drewlinguistics01 at gmail dot com>
-;; Version: 0.1.0
+;; Version: 0.1.1
 ;; Package-Requires: ((pyvenv "1.21") (emacs "28.1") (transient "0.3.7") (pyenv-mode "0.1.0"))
 ;; Keywords: processes, python
 ;; URL: https://github.com/andcarnivorous/pyconf
@@ -177,7 +177,9 @@ finally, set the ENV-VARS if provided."
 
 (defun pyconf--eval-env-vars (vars-list)
   "Evaluate elisp code stored in a string."
-  (eval (car (read-from-string vars-list))))
+  (if (= (length vars-list) 0)
+      '()
+    (eval (car (read-from-string vars-list)))))
 
 (transient-define-suffix pyconf-transient-save (&optional args)
   "Save a pyconf configuration given the necessary parameters."
@@ -215,7 +217,7 @@ finally, set the ENV-VARS if provided."
         (config-params (or (transient-arg-value "--params=" args) ""))
         (config-venv (or (transient-arg-value "--venv=" args) ""))
         (config-pyenv (or (transient-arg-value "--pyenv=" args) ""))
-        (config-env-vars (or (pyconf--eval-env-vars (transient-arg-value "--env-vars=" args) ""))))
+        (config-env-vars (or (pyconf--eval-env-vars (transient-arg-value "--env-vars=" args)) '())))
     (pyconf-execute-config (pyconf-config :name config-name
                                            :pyconf-exec-command config-command
                                            :pyconf-file-to-exec config-file-path
@@ -223,7 +225,7 @@ finally, set the ENV-VARS if provided."
                                            :pyconf-params config-params
                                            :pyconf-venv config-venv
                                            :pyconf-pyenv config-pyenv
-                                           :pyconf-env-vars (pyconf--split-vars-string config-env-vars)))))
+                                           :pyconf-env-vars config-env-vars))))
 
 (defun pyconf-prefix-init (obj)
   "Load dynamically default values and set OBJ value slot.
