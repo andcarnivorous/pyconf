@@ -60,7 +60,7 @@
 ;;
 ;; You can use `pyconf-bootstrap-pyproject' to choose a directory where to create a new pyenv
 ;; virtualenv (it will have the name of the directory) and optionally install dependencies
-;; using poetry. The function will also create a .dir-locals file (refer to Emacs' docs)
+;; using poetry.  The function will also create a .dir-locals file (refer to Emacs' docs)
 ;; that will set the pyenv version to the one of the project/directory you chose everytime
 ;; you open a file in the directory or any of its subdirectories.
 ;;; Code:
@@ -182,7 +182,7 @@ finally, set the ENV-VARS if provided."
     (pyconf-add-config configuration-item)))
 
 (defun pyconf--eval-env-vars (vars-list)
-  "Evaluate elisp code stored in a string."
+ "Evaluate elisp code stored in a string VARS-LIST."
   (if (= (length vars-list) 0)
       '()
     (eval (car (read-from-string vars-list)))))
@@ -243,10 +243,11 @@ https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-curre
                     ,(format "--path=%s" (file-name-directory buffer-file-name)))))
 
 (defun pyconf--read-pyenv ()
+  "Wrapper around pyvenv venv list."
   (pyvenv-virtualenv-list))
 
-(transient-define-argument pyconf-pyenv:--pyenv ()
-  "Argument to select pyenv version to use for execution"
+(transient-define-argument pyconf-pyenv--pyenv ()
+  "Argument to select pyenv version to use for execution."
   :class 'transient-option
   :shortarg "-P"
   :description "Pyenv version"
@@ -254,7 +255,7 @@ https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-curre
   :argument "--pyenv="
   :choices (pyconf--read-pyenv))
 
-(transient-define-argument pyconf-venv:--venv ()
+(transient-define-argument pyconf-venv--venv ()
   "Virtualenv argument."
   :class 'transient-option
   :shortarg "-v"
@@ -262,7 +263,7 @@ https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-curre
   :always-read t
   :argument "--venv=")
 
-(transient-define-argument pyconf-params:--params ()
+(transient-define-argument pyconf-params--params ()
   "Parameters argument."
   :class 'transient-option
   :shortarg "--params"
@@ -270,7 +271,7 @@ https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-curre
   :always-read t
   :argument "--params=")
 
-(transient-define-argument pyconf-envvars:--env-vars ()
+(transient-define-argument pyconf-envvars--env-vars ()
   "Environment Variables Argument."
   :class 'transient-option
   :shortarg "-e"
@@ -278,7 +279,7 @@ https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-curre
   :always-read t
   :argument "--env-vars=")
 
-(transient-define-argument pyconf-name:--name ()
+(transient-define-argument pyconf-name--name ()
   "Name execution argument."
   :class 'transient-option
   :shortarg "-n"
@@ -286,15 +287,15 @@ https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-curre
   :always-read t
   :argument "--name=")
 
-(transient-define-argument pyconf-command:--command ()
-  ""
+(transient-define-argument pyconf-command--command ()
+  "Command executable argument."
   :class 'transient-option
   :shortarg "-c"
   :description "command"
   :always-read t
   :argument "--command=")
 
-(transient-define-argument pyconf-filepath:--file-path ()
+(transient-define-argument pyconf-filepath--file-path ()
   "File Path Argument."
   :class 'transient-option
   :shortarg "-f"
@@ -302,7 +303,7 @@ https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-curre
   :always-read t
   :argument "--file-path=")
 
-(transient-define-argument pyconf-path:--path ()
+(transient-define-argument pyconf-path--path ()
   "Execution Path Argument."
   :class 'transient-option
   :shortarg "-p"
@@ -314,14 +315,14 @@ https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-curre
   "PyConf transient interface."
   :init-value 'pyconf-prefix-init
   ["Arguments"
-   (pyconf-name:--name)
-   (pyconf-command:--command)
-   (pyconf-filepath:--file-path)
-   (pyconf-path:--path)
-   (pyconf-venv:--venv)
-   (pyconf-params:--params)
-   (pyconf-envvars:--env-vars)
-   (pyconf-pyenv:--pyenv)
+   (pyconf-name--name)
+   (pyconf-command--command)
+   (pyconf-filepath--file-path)
+   (pyconf-path--path)
+   (pyconf-venv--venv)
+   (pyconf-params--params)
+   (pyconf-envvars--env-vars)
+   (pyconf-pyenv--pyenv)
    ]
   ["Actions"
    [(pyconf-transient-save)
@@ -338,7 +339,7 @@ https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-curre
   (split-string vars-string ","))
 
 (defun pyconf-bootstrap-pyproject (target-dir pyenv-version use-poetry)
-  "Creates a new venv with given PYENV-VERSION in TARGET-DIR.
+  "Create a new venv with given PYENV-VERSION in TARGET-DIR.
 If USE-POETRY, it will install all dependencies in the TARGET-DIR.
 It will also create a dir-locals that switches pyenv in python mode."
   (interactive (let ((completion-ignore-case t))
@@ -355,27 +356,29 @@ It will also create a dir-locals that switches pyenv in python mode."
     (with-temp-file out-file (insert out-contents))))
 
 (defun pyconf-create-pyenv (name version)
-  "Creates a new pyenv virtualenv with given NAME using given pyenv VERSION"
+  "Create a new pyenv virtualenv with given NAME using given pyenv VERSION."
   (if (not (member name (pyvenv-virtualenv-list)))
       (pyconf--exec-pyenv-create version name))
   (pyvenv-deactivate) ;; it seems workon alone does not always work
   (pyvenv-workon name))
 
 (defun pyconf--exec-pyenv-create (version name)
+  "Create new pyenv virtualenv with NAME using python VERSION."
   (call-process-shell-command
        (string-join (list "pyenv virtualenv" version name) " ") nil 0))
 
 (defvar pyconf-bootstrap-packages nil
-  "List of packages you want to install when boostrapping a project. Nil by default")
+  "List of packages you want to install when boostrapping a project.  Nil by default.")
 
 (defun pyconf-install-with-poetry (target-dir)
-  "Install python dependencies in TARGET-DIR using poetry"
+  "Install python dependencies in TARGET-DIR using poetry."
   (let ((default-directory target-dir))
     (async-shell-command "poetry install")
     (if pyconf-bootstrap-packages
         (async-shell-command (format "poetry add %s" (string-join pyconf-bootstrap-packages " "))))))
 
 (defun pyconf--switch-pyvenv (environment)
+  "Switch a virtualenvironment to ENVIRONMENT."
   (pyvenv-deactivate) ;; it seems workon alone does not always work
   (pyvenv-workon environment))
 
