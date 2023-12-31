@@ -242,18 +242,86 @@ https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-curre
                     ,(format "--file-path=%s" (buffer-file-name))
                     ,(format "--path=%s" (file-name-directory buffer-file-name)))))
 
+(defun pyconf--read-pyenv ()
+  (pyvenv-virtualenv-list))
+
+(transient-define-argument pyconf-pyenv:--pyenv ()
+  "Argument to select pyenv version to use for execution"
+  :class 'transient-option
+  :shortarg "-P"
+  :description "Pyenv version"
+  :always-read t
+  :argument "--pyenv="
+  :choices (pyconf--read-pyenv))
+
+(transient-define-argument pyconf-venv:--venv ()
+  "Virtualenv argument."
+  :class 'transient-option
+  :shortarg "-v"
+  :description "virtualenv"
+  :always-read t
+  :argument "--venv=")
+
+(transient-define-argument pyconf-params:--params ()
+  "Parameters argument."
+  :class 'transient-option
+  :shortarg "--params"
+  :description "parameters"
+  :always-read t
+  :argument "--params=")
+
+(transient-define-argument pyconf-envvars:--env-vars ()
+  "Environment Variables Argument."
+  :class 'transient-option
+  :shortarg "-e"
+  :description "envvars"
+  :always-read t
+  :argument "--env-vars=")
+
+(transient-define-argument pyconf-name:--name ()
+  "Name execution argument."
+  :class 'transient-option
+  :shortarg "-n"
+  :description "name"
+  :always-read t
+  :argument "--name=")
+
+(transient-define-argument pyconf-command:--command ()
+  ""
+  :class 'transient-option
+  :shortarg "-c"
+  :description "command"
+  :always-read t
+  :argument "--command=")
+
+(transient-define-argument pyconf-filepath:--file-path ()
+  "File Path Argument."
+  :class 'transient-option
+  :shortarg "-f"
+  :description "file path"
+  :always-read t
+  :argument "--file-path=")
+
+(transient-define-argument pyconf-path:--path ()
+  "Execution Path Argument."
+  :class 'transient-option
+  :shortarg "-p"
+  :description "execution path"
+  :always-read t
+  :argument "--path=")
+
 (transient-define-prefix pyconf-menu ()
   "PyConf transient interface."
   :init-value 'pyconf-prefix-init
   ["Arguments"
-   ("-n" "name" "--name=" :always-read t)
-   ("-c" "command" "--command=" :always-read t)
-   ("-f" "file path" "--file-path=" :always-read t)
-   ("-p" "execution path" "--path=" :always-read t)
-   ("-v" "virtualenv" "--venv=" :always-read t)
-   ("--params" "parameters" "--params=" :always-read t)
-   ("-e" "envvars" "--env-vars=" :always-read t)
-   ("--pyenv" "pyenv-version" "--pyenv=" :always-read t)
+   (pyconf-name:--name)
+   (pyconf-command:--command)
+   (pyconf-filepath:--file-path)
+   (pyconf-path:--path)
+   (pyconf-venv:--venv)
+   (pyconf-params:--params)
+   (pyconf-envvars:--env-vars)
+   (pyconf-pyenv:--pyenv)
    ]
   ["Actions"
    [(pyconf-transient-save)
