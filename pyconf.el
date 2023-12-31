@@ -284,6 +284,7 @@ It will also create a dir-locals that switches pyenv in python mode."
   "Creates a new pyenv virtualenv with given NAME using given pyenv VERSION"
   (if (not (member name (pyvenv-virtualenv-list)))
       (pyconf--exec-pyenv-create version name))
+  (pyvenv-deactivate) ;; it seems workon alone does not always work
   (pyvenv-workon name))
 
 (defun pyconf--exec-pyenv-create (version name)
@@ -298,10 +299,10 @@ It will also create a dir-locals that switches pyenv in python mode."
   (let ((default-directory target-dir))
     (async-shell-command "poetry install")
     (if pyconf-bootstrap-packages
-        (async-shell-command (format "poetry add %s" (string-join pyconf-bootstrap-packages " ")))))) 
+        (async-shell-command (format "poetry add %s" (string-join pyconf-bootstrap-packages " "))))))
 
 (defun pyconf--switch-pyvenv (environment)
-  (pyvenv-deactivate)
+  (pyvenv-deactivate) ;; it seems workon alone does not always work
   (pyvenv-workon environment))
 
 (provide 'pyconf)
