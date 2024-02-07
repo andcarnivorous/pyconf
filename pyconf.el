@@ -70,8 +70,23 @@
 (require 'pyvenv)
 (require 'transient)
 (require 'pyenv-mode)
+(require 'python)
 
 (defvar pyconf-config-list '())
+(defconst pyconf-errors-buffer-name "*PYCONF ERRORS*")
+
+(defun pyconf--remote-exec-dir (exec-dir)
+  "Build the remote docker path using the EXEC-DIR to pass to tramp."
+  (if (string-prefix-p "/docker:" exec-dir) t nil))
+
+(defun pyconf--send-shell-to-remote (path)
+  "Send the current buffer to the remote given PATH."
+  (save-excursion
+    (pyconf--on-remote path))
+  (with-current-buffer "*Python*"
+    (while (not python-shell--first-prompt-received)
+      (accept-process-output (get-buffer-process (current-buffer)))))
+  (python-shell-send-buffer))
 
 (defun pyconf-run-python-proc (command-s path-to-file exec-dir &optional params venv pyenv-version env-vars)
   "Execute COMMAND-S pointing to PATH-TO-FILE.
@@ -91,11 +106,13 @@ finally, set the ENV-VARS if provided."
       (pyconf-venv-or-pyenv venv pyenv-version))
     (if (> (length env-vars) 0)
         (setq built-env-vars (string-join env-vars " ")))
-    (let ((default-directory exec-dir))
-      (pyconf--run-shell-command built-env-vars command-s path-to-file params))
-    (if cached-venv
-        (pyconf-venv-or-pyenv venv pyenv-version)
-      (pyvenv-deactivate))))
+    (if (pyconf--remote-exec-dir exec-dir)
+          (pyconf--send-shell-to-remote exec-dir)
+      (let ((default-directory exec-dir))
+        (pyconf--run-shell-command built-env-vars command-s path-to-file params))
+      (if cached-venv
+          (pyconf-venv-or-pyenv venv pyenv-version)
+        (pyvenv-deactivate)))))
 
 (defun pyconf--run-shell-command (built-env-vars command-s path-to-file params)
   "Run given COMMAND-S preceded by BUILT-ENV-VARS and followed by PATH-TO-FILE and PARAMS."
@@ -253,7 +270,7 @@ https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-curre
   :description "Pyenv version"
   :always-read t
   :argument "--pyenv="
-  :choices (pyconf--read-pyenv))
+  :choices (lambda (_prompt _initial _history) (read-directory-name _prompt)))
 
 (transient-define-argument pyconf-venv--venv ()
   "Virtualenv argument."
@@ -301,15 +318,17 @@ https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-curre
   :shortarg "-f"
   :description "file path"
   :always-read t
-  :argument "--file-path=")
+  :argument "--file-path="
+  :reader (lambda (_prompt _initial _history) (read-file-name _prompt)))
 
 (transient-define-argument pyconf-path--path ()
   "Execution Path Argument."
   :class 'transient-option
   :shortarg "-p"
-  :description "execution path"
+  :description "execution path (local, docker)"
   :always-read t
-  :argument "--path=")
+  :argument "--path="
+  :reader (lambda (_prompt _initial _history) (read-file-name _prompt)))
 
 (transient-define-prefix pyconf-menu ()
   "PyConf transient interface."
@@ -338,23 +357,97 @@ https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-curre
   "Split a VARS-STRING containing environment variables comma separated into a list."
   (split-string vars-string ","))
 
-(defun pyconf-bootstrap-pyproject (target-dir pyenv-version use-poetry)
+(defun pyconf--use-req-file (req-file)
+  "Prompt user on whether to use the requirements REQ-FILE."
+  (interactive
+   (list (yes-or-no-p "Use requirements file?")))
+    req-file)
+
+(defun pyconf-bootstrap-prefix-init (obj)
+  "Load dynamically default values and set OBJ value slot.
+Refer to
+https://stackoverflow.com/questions/28196228/emacs-how-to-get-directory-of-current-buffer"
+  (oset obj value `(,(format "--dir=%s" (file-name-directory buffer-file-name))
+                    ,(format "--requirements=%s%s" (file-name-directory buffer-file-name) "requirements.txt"))))
+
+(transient-define-prefix pyconf-bootstrap-menu ()
+  "PyConf transient interface."
+  :init-value 'pyconf-bootstrap-prefix-init
+  ["Arguments"
+   ("p" "use pyenv" "--use-pyenv")
+   ("d" "project directory" "--dir=")
+   (pyconf-pyenv--pyenv)
+   ("r" "use requirement(venv)" "--requirements=")
+   ("y" "use poetry" "--use-poetry")
+   ]
+  ["Actions"
+   [("b" pyconf-transient-bootstrap)]])
+
+(transient-define-suffix pyconf-transient-bootstrap (&optional args)
+  "Execute a non-persistent pyconf configuration given the necessary parameters."
+  :key "b"
+  :description "bootstrap python project"
+  :transient nil
+  (interactive (list (transient-args transient-current-command)))
+  (let ((use-pyenv (or (transient-arg-value "--use-pyenv" args) nil))
+        (package-dir (or (transient-arg-value "--dir=" args) nil))
+        (pyenv-version (or (transient-arg-value "--pyenv-config" args) nil))
+        (req-file (or (transient-arg-value "--requirements" args) nil))
+        (use-poetry (or (transient-arg-value "--use-poetry" args) nil)))
+    (if (and use-poetry req-file)
+        (message "You cannot use both a requirement file and poetry!")
+      (pyconf--start-bootstrap use-pyenv pyenv-version use-poetry package-dir req-file))))
+
+(defun pyconf-bootstrap-pyproject (target-dir pyenv-version use-pyenv use-poetry)
   "Create a new venv with given PYENV-VERSION in TARGET-DIR.
 If USE-POETRY, it will install all dependencies in the TARGET-DIR.
 It will also create a dir-locals that switches pyenv in python mode."
   (interactive (let ((completion-ignore-case t))
 		 (list (read-directory-name "DDir: ")
 		       (completing-read "Choose Config: " (pyvenv-virtualenv-list) nil t)
-		       (yes-or-no-p "Use Poetry?"))))
+                       (yes-or-no-p "Use Pyenv (No uses venv)?")
+		       (yes-or-no-p "Use Poetry (No uses pip)?"))))
   (let* ((package-dir (file-truename target-dir))
-	 (venv-name (file-name-base (directory-file-name (file-truename package-dir))))
-	 (out-file (expand-file-name ".dir-locals.el" package-dir))
-	 (out-contents (format "((nil . ((eval . (pyconf--switch-pyvenv \"%s\")))))" venv-name))
-	 (use-short-answers t))
-    (pyconf-create-pyenv venv-name pyenv-version)
+	 (use-short-answers t)
+         (req-file (if use-poetry
+                       nil
+                     (call-interactively 'pyconf--use-req-file))))
+    (pyconf--start-bootstrap use-pyenv pyenv-version use-poetry package-dir req-file)))
+
+(defun pyconf--start-bootstrap (use-pyenv pyenv-version use-poetry package-dir req-file )
+  "Prepare the environment by creating the dir-locals and installing dependencies.
+How dependencies are installed and how the venv in
+managed depends on the values of the parameters passed.
+USE-PYENV is a bool, PYENV-VERSION is the pyenv version
+you want to create the new venv with.
+USE-POETRY is a bool, if true the other methods like pyenv
+and requirements file will be ignored.
+PACKAGE-DIR is the current project/python package directory.
+REQ-FILE is whether to use a requirements file to install dependencies."
+  (let* ((venv-name (file-name-base (directory-file-name (file-truename package-dir))))
+         (out-contents (format "((nil . ((eval . (pyconf--switch-pyvenv \"%s\")))))" venv-name))
+         (out-file (expand-file-name ".dir-locals.el" package-dir)))
+    (if use-pyenv
+        (pyconf-create-pyenv venv-name pyenv-version)
+      (pyconf-create-venv package-dir))
     (when use-poetry (pyconf-install-with-poetry package-dir))
+    (if req-file
+        (pyconf-install-requirements package-dir))
+    (when (and (not req-file) (not use-poetry))
+      (pyconf-install-with-pip package-dir))
     (with-temp-file out-file (insert out-contents))))
 
+(defun pyconf-install-requirements (package-dir)
+  "Install the dependencies using the requirements file in PACKAGE-DIR."
+  (let (default-directory package-dir))
+  (shell-command "pip install -r requirements.txt" "*pyconf pip install requirements*" "*PYCONF ERRORS"))
+
+(defun pyconf-create-venv (target-dir)
+  "Create the virtual environment using python's venv in TARGET-DIR."
+  (let ((default-directory target-dir))
+    (shell-command "python -m venv .venv" "*pyconf create venv*" pyconf-errors-buffer-name)
+    (pyvenv-activate   (format "%s/.venv" target-dir))))
+  
 (defun pyconf-create-pyenv (name version)
   "Create a new pyenv virtualenv with given NAME using given pyenv VERSION."
   (if (not (member name (pyvenv-virtualenv-list)))
@@ -373,15 +466,53 @@ It will also create a dir-locals that switches pyenv in python mode."
 (defun pyconf-install-with-poetry (target-dir)
   "Install python dependencies in TARGET-DIR using poetry."
   (let ((default-directory target-dir))
-    (async-shell-command "poetry install")
+    (shell-command "pip install poetry" "*pyconf poetry install*")
+    (shell-command "poetry install" "*pyconf poetry install*" pyconf-errors-buffer-name)
     (if pyconf-bootstrap-packages
-        (async-shell-command (format "poetry add %s" (string-join pyconf-bootstrap-packages " "))))))
+        (shell-command (format "poetry add %s" (string-join pyconf-bootstrap-packages " ")) "*pyconf poetry add extra*" pyconf-errors-buffer-name))))
+
+(defun pyconf-install-with-pip (target-dir)
+  "Install python dependencies in TARGET-DIR using poetry."
+  (let ((default-directory target-dir))
+    (shell-command "pip install -e ." "*pyconf pip install project*" pyconf-errors-buffer-name)
+    (if pyconf-bootstrap-packages
+        (shell-command (format "pip install %s" (string-join pyconf-bootstrap-packages " ")) "*pyconf pip install extra*" pyconf-errors-buffer-name))))
 
 (defun pyconf--switch-pyvenv (environment)
   "Switch a virtualenvironment to ENVIRONMENT."
   (pyvenv-deactivate) ;; it seems workon alone does not always work
   (pyvenv-workon environment))
 
-(provide 'pyconf)
+(defun pyconf--build-remote-path (remote-type container-id path)
+  "Build the remote path given the REMOTE-TYPE to the CONTAINER-ID PATH."
+  (cond ((string= remote-type "docker")
+         (format "/%s:%s:%s" remote-type container-id path))))
 
+(defun pyconf--on-remote (path)
+  "Start a Python interpreter on the remote PATH."
+  (let ((default-directory path))
+    (without-yes-or-no (run-python))))
+
+(defun pyconf-on-remote (container-id)
+  "Provided the CONTAINER-ID, send the current buffer code to it."
+  (interactive (list (completing-read "Provide container id please: " nil t)))
+  (message (pyconf--build-remote-path "docker" container-id "/"))
+  (save-excursion
+    (pyconf--on-remote (pyconf--build-remote-path "docker" container-id "/")))
+  (with-current-buffer "*Python*"
+    (while (not python-shell--first-prompt-received)
+      (accept-process-output (get-buffer-process (current-buffer)))))
+  (python-shell-send-buffer))
+
+; taken from https://stackoverflow.com/a/59509250
+(defmacro without-yes-or-no (&rest body)
+  "Override `yes-or-no-p' & `y-or-n-p', not to prompt for input and return t by using the BODY."
+  (declare (indent 1))
+  `(cl-letf (((symbol-function 'yes-or-no-p) (lambda (&rest _) t))
+             ((symbol-function 'y-or-n-p) (lambda (&rest _) t)))
+    ,@body))
+
+(provide 'pyconf)
+;; TODO implement path autocomplete for path options in transient.
+;; TODO for this one: pyconf-bootstrap-menu
 ;;; pyconf.el ends here
